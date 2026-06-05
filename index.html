@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <title>Content Planner</title>
+    <link rel="stylesheet" href="styles.css?v=format-carousel-20260605" />
+    <script src="app.js?v=format-carousel-20260605" defer></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer onload="window.lucide && window.lucide.createIcons()"></script>
+  </head>
+  <body>
+    <section class="category-screen" id="categoryScreen" aria-label="เลือกหมวดธุรกิจ">
+      <div class="category-layout">
+        <div class="category-hero">
+          <div class="brand category-brand">
+            <div class="brand-mark">CP</div>
+            <div>
+              <p class="eyebrow">Content Planner</p>
+              <h1>เลือกหมวดธุรกิจ</h1>
+            </div>
+          </div>
+        </div>
+
+        <div class="category-panel">
+          <div class="panel-head compact">
+            <div>
+              <p class="eyebrow">Business category</p>
+              <h2>เข้าใช้งานหมวด</h2>
+            </div>
+          </div>
+
+          <div class="category-grid" id="categoryGrid">
+            <button class="category-card" type="button" data-category-id="real-estate" onclick="return selectCategory('real-estate')">
+              <span class="category-icon"><i data-lucide="building-2" aria-hidden="true"></i></span>
+              <span>
+                <strong>อสังหา</strong>
+                <span>0 รายการคอนเทนต์</span>
+              </span>
+            </button>
+            <button class="category-card" type="button" data-category-id="solar" onclick="return selectCategory('solar')">
+              <span class="category-icon"><i data-lucide="sun" aria-hidden="true"></i></span>
+              <span>
+                <strong>โซลาร์เซลล์</strong>
+                <span>0 รายการคอนเทนต์</span>
+              </span>
+            </button>
+            <button class="category-card" type="button" data-category-id="restaurant" onclick="return selectCategory('restaurant')">
+              <span class="category-icon"><i data-lucide="utensils" aria-hidden="true"></i></span>
+              <span>
+                <strong>ร้านอาหาร</strong>
+                <span>0 รายการคอนเทนต์</span>
+              </span>
+            </button>
+          </div>
+
+          <form class="category-form" id="categoryForm" novalidate>
+            <label for="categoryNameInput">เพิ่มหมวดใหม่</label>
+            <div class="category-add-row">
+              <input id="categoryNameInput" type="text" maxlength="40" placeholder="เช่น คลินิก, ฟิตเนส, โรงแรม" />
+              <button class="primary-action" type="submit">
+                <i data-lucide="plus" aria-hidden="true"></i>
+                <span>เพิ่ม</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <div class="app-shell" id="appShell" hidden>
+      <aside class="sidebar" aria-label="เมนูหลัก">
+        <div class="brand">
+          <div class="brand-mark">CP</div>
+          <div>
+            <p class="eyebrow">Workspace</p>
+            <h1>Content Planner</h1>
+          </div>
+        </div>
+
+        <button class="category-switch" type="button" id="changeCategoryButton">
+          <i data-lucide="layers-3" aria-hidden="true"></i>
+          <span id="activeCategoryName">เลือกหมวด</span>
+          <i data-lucide="chevron-right" aria-hidden="true"></i>
+        </button>
+
+        <nav class="nav-list" aria-label="มุมมอง">
+          <button class="nav-item is-active" type="button" data-view="calendar" aria-pressed="true" onclick="return switchView('calendar')">
+            <i data-lucide="calendar-days" aria-hidden="true"></i>
+            <span>ปฏิทิน</span>
+          </button>
+          <button class="nav-item" type="button" data-view="board" aria-pressed="false" onclick="return switchView('board')">
+            <i data-lucide="kanban" aria-hidden="true"></i>
+            <span>บอร์ด</span>
+          </button>
+          <button class="nav-item" type="button" data-view="list" aria-pressed="false" onclick="return switchView('list')">
+            <i data-lucide="list-checks" aria-hidden="true"></i>
+            <span>รายการ</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-block">
+          <p class="block-label">ช่องทาง</p>
+          <div class="channel-stack" id="channelStack"></div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="activeCategoryEyebrow">แผนเดือนนี้</p>
+            <h2 id="pageTitle">ปฏิทินคอนเทนต์</h2>
+          </div>
+          <div class="top-actions">
+            <button class="secondary-action" type="button" id="topChangeCategoryButton">
+              <i data-lucide="shuffle" aria-hidden="true"></i>
+              <span>เปลี่ยนหมวด</span>
+            </button>
+            <button class="primary-action" type="button" id="focusFormButton">
+              <i data-lucide="plus" aria-hidden="true"></i>
+              <span>เพิ่มคอนเทนต์</span>
+            </button>
+          </div>
+        </header>
+
+        <section class="insights" aria-label="สรุปแผนคอนเทนต์">
+          <article class="metric">
+            <span class="metric-label">ทั้งหมด</span>
+            <strong id="totalMetric">0</strong>
+          </article>
+          <article class="metric">
+            <span class="metric-label">รอตรวจ</span>
+            <strong id="reviewMetric">0</strong>
+          </article>
+          <article class="metric">
+            <span class="metric-label">ตั้งเวลาแล้ว</span>
+            <strong id="scheduledMetric">0</strong>
+          </article>
+          <article class="metric accent">
+            <span class="metric-label">เผยแพร่แล้ว</span>
+            <strong id="publishedMetric">0</strong>
+          </article>
+        </section>
+
+        <section class="control-row" aria-label="ตัวกรอง">
+          <label class="search-field" for="searchInput">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input id="searchInput" type="search" placeholder="ค้นหาชื่อ ช่องทาง รูปแบบ หรือ URL" autocomplete="off" />
+          </label>
+
+          <div class="select-group">
+            <label for="channelFilter">ช่องทาง</label>
+            <select id="channelFilter">
+              <option value="all">ทั้งหมด</option>
+            </select>
+          </div>
+
+          <div class="select-group">
+            <label for="statusFilter">สถานะ</label>
+            <select id="statusFilter">
+              <option value="all">ทั้งหมด</option>
+            </select>
+          </div>
+        </section>
+
+        <div class="content-grid">
+          <section class="planner-panel" aria-live="polite">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow" id="panelEyebrow">Monthly view</p>
+                <h3 id="panelTitle">ปฏิทินเผยแพร่</h3>
+              </div>
+              <div class="month-switcher" id="monthSwitcher">
+                <button class="icon-button" type="button" id="previousMonth" aria-label="เดือนก่อนหน้า">
+                  <i data-lucide="chevron-left" aria-hidden="true"></i>
+                </button>
+                <span id="monthLabel"></span>
+                <button class="icon-button" type="button" id="nextMonth" aria-label="เดือนถัดไป">
+                  <i data-lucide="chevron-right" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+
+            <div id="calendarView" class="calendar-view"></div>
+            <div id="boardView" class="board-view" hidden></div>
+            <div id="listView" class="list-view" hidden></div>
+          </section>
+
+          <aside class="form-panel" aria-label="ฟอร์มคอนเทนต์">
+            <div class="panel-head compact">
+              <div>
+                <p class="eyebrow">Content brief</p>
+                <h3 id="formTitle">เพิ่มรายการใหม่</h3>
+              </div>
+              <button class="icon-button subtle" type="button" id="resetFormButton" aria-label="ล้างฟอร์ม">
+                <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <form id="contentForm" class="content-form" novalidate>
+              <label>
+                ชื่อคอนเทนต์
+                <input id="titleInput" name="title" type="text" required maxlength="80" placeholder="เช่น Reel เปิดตัวโปรโมชัน" />
+              </label>
+
+              <label class="url-field">
+                แนบลิงก์ URL
+                <textarea id="urlInput" name="url" rows="3" inputmode="url" maxlength="800" placeholder="https://example.com/content-brief&#10;https://example.com/reference"></textarea>
+                <span class="field-help">วางหลายลิงก์ได้ทีละบรรทัด แล้วกดปุ่มด้านล่างเพื่อเปิดแท็บใหม่</span>
+              </label>
+              <div class="url-preview" id="urlPreview" aria-live="polite"></div>
+
+              <div class="field-pair">
+                <label>
+                  วันที่
+                  <input id="dateInput" name="date" type="date" required />
+                </label>
+                <label>
+                  เวลา
+                  <input id="timeInput" name="time" type="time" required />
+                </label>
+              </div>
+
+              <div class="field-pair">
+                <label>
+                  ช่องทาง
+                  <select id="channelInput" name="channel" required></select>
+                </label>
+                <label>
+                  รูปแบบ
+                  <select id="formatInput" name="format" required>
+                    <option>Post</option>
+                    <option>Story</option>
+                    <option>Reel</option>
+                    <option>Carousel</option>
+                    <option>Video</option>
+                    <option>Article</option>
+                    <option>Email</option>
+                  </select>
+                </label>
+              </div>
+
+              <label>
+                สถานะ
+                <select id="statusInput" name="status" required></select>
+              </label>
+
+              <label>
+                โน้ต
+                <textarea id="notesInput" name="notes" rows="4" placeholder="ประเด็นหลักหรือสิ่งที่ต้องเตรียม"></textarea>
+              </label>
+
+              <button class="primary-action full" type="submit" id="submitButton">
+                <i data-lucide="save" aria-hidden="true"></i>
+                <span>บันทึกแผน</span>
+              </button>
+            </form>
+          </aside>
+        </div>
+      </main>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </body>
+</html>
