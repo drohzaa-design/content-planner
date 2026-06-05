@@ -27,7 +27,7 @@ jobs:
       - name: Prepare static files
         run: |
           mkdir public
-          cp index.html styles.css app.js public/
+          cp index.html styles.css app.js content-ideas.css content-ideas.js public/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
