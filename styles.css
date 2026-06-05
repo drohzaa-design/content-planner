@@ -445,7 +445,7 @@ button {
 
 .insights {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
   gap: 12px;
 }
 
@@ -810,21 +810,6 @@ button {
   color: var(--violet);
 }
 
-.status-draft {
-  background: #edf3fd;
-  color: var(--blue);
-}
-
-.status-review {
-  background: #fff5df;
-  color: #8b5f10;
-}
-
-.status-scheduled {
-  background: #e8f6f3;
-  color: var(--teal-strong);
-}
-
 .status-published {
   background: #edf8ef;
   color: #2d744c;
@@ -832,7 +817,7 @@ button {
 
 .board-view {
   display: grid;
-  grid-template-columns: repeat(5, minmax(172px, 1fr));
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
   gap: 1px;
   overflow-x: auto;
   background: var(--line);
