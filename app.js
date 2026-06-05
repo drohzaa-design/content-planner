@@ -3,10 +3,7 @@ const formats = ["Post", "Story", "Reel", "Carousel", "Video", "Article", "Email
 
 const statuses = [
   { id: "idea", label: "ไอเดีย" },
-  { id: "draft", label: "ร่าง" },
-  { id: "review", label: "รอตรวจ" },
-  { id: "scheduled", label: "ตั้งเวลาแล้ว" },
-  { id: "published", label: "เผยแพร่แล้ว" },
+  { id: "published", label: "เผยแพร่" },
 ];
 
 const thaiWeekdays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -44,8 +41,7 @@ const elements = {
   topChangeCategoryButton: document.querySelector("#topChangeCategoryButton"),
   pageTitle: document.querySelector("#pageTitle"),
   totalMetric: document.querySelector("#totalMetric"),
-  reviewMetric: document.querySelector("#reviewMetric"),
-  scheduledMetric: document.querySelector("#scheduledMetric"),
+  ideaMetric: document.querySelector("#ideaMetric"),
   publishedMetric: document.querySelector("#publishedMetric"),
   channelStack: document.querySelector("#channelStack"),
   searchInput: document.querySelector("#searchInput"),
@@ -101,7 +97,7 @@ function seedItems() {
       time: "10:00",
       channel: "Instagram",
       format: "Reel",
-      status: "scheduled",
+      status: "published",
       urls: ["https://www.instagram.com/"],
       notes: "ใช้ hook 3 วินาทีแรกและปิดท้ายด้วย CTA ไปหน้าโปรโมชัน",
     },
@@ -112,7 +108,7 @@ function seedItems() {
       time: "09:30",
       channel: "Blog",
       format: "Article",
-      status: "draft",
+      status: "idea",
       urls: [],
       notes: "อ้างอิงคำถามจากฝ่ายขายและเลือก 5 ประเด็นหลัก",
     },
@@ -123,7 +119,7 @@ function seedItems() {
       time: "13:00",
       channel: "Facebook",
       format: "Post",
-      status: "review",
+      status: "idea",
       urls: [],
       notes: "ตรวจภาพปกและ bullet ให้จบภายในวันเดียวกัน",
     },
@@ -240,10 +236,14 @@ function normalizeItem(item) {
     time: /^\d{2}:\d{2}$/.test(item.time || "") ? item.time : "09:00",
     channel: channels.includes(item.channel) ? item.channel : channels[0],
     format: formats.includes(item.format) ? item.format : formats[0],
-    status: statuses.some((status) => status.id === item.status) ? item.status : statuses[0].id,
+    status: normalizeStatus(item.status),
     urls: normalizeUrls(item.urls ?? item.url ?? ""),
     notes: String(item.notes || ""),
   };
+}
+
+function normalizeStatus(statusId) {
+  return statusId === "published" ? "published" : "idea";
 }
 
 function isValidISODate(value) {
@@ -479,8 +479,7 @@ function updateActiveCategoryUI() {
 
 function renderMetrics(visibleItems) {
   elements.totalMetric.textContent = visibleItems.length;
-  elements.reviewMetric.textContent = visibleItems.filter((item) => item.status === "review").length;
-  elements.scheduledMetric.textContent = visibleItems.filter((item) => item.status === "scheduled").length;
+  elements.ideaMetric.textContent = visibleItems.filter((item) => item.status === "idea").length;
   elements.publishedMetric.textContent = visibleItems.filter((item) => item.status === "published").length;
 }
 
@@ -603,6 +602,7 @@ function renderBoard(visibleItems) {
 }
 
 function renderBoardCard(item) {
+  const nextLabel = item.status === "published" ? "กลับเป็นไอเดีย" : "เผยแพร่";
   return `
     <article class="content-card board-card" data-id="${item.id}">
       <span class="status-badge status-${item.status}">${statusLabel(item.status)}</span>
@@ -615,7 +615,7 @@ function renderBoardCard(item) {
       </div>
       <div class="status-actions">
         <button class="status-button" type="button" data-action="edit" data-id="${item.id}">แก้ไข</button>
-        <button class="status-button" type="button" data-action="advance" data-id="${item.id}">ถัดไป</button>
+        <button class="status-button" type="button" data-action="advance" data-id="${item.id}">${nextLabel}</button>
       </div>
     </article>
   `;
@@ -646,6 +646,8 @@ function renderList(visibleItems) {
 }
 
 function renderTableRow(item) {
+  const nextLabel = item.status === "published" ? "กลับเป็นไอเดีย" : "เผยแพร่";
+  const nextIcon = item.status === "published" ? "undo-2" : "check";
   return `
     <tr>
       <td>
@@ -663,8 +665,8 @@ function renderTableRow(item) {
           <button class="table-action" type="button" data-action="edit" data-id="${item.id}" aria-label="แก้ไข">
             <i data-lucide="pencil" aria-hidden="true"></i>
           </button>
-          <button class="table-action" type="button" data-action="advance" data-id="${item.id}" aria-label="เลื่อนสถานะ">
-            <i data-lucide="arrow-right" aria-hidden="true"></i>
+          <button class="table-action" type="button" data-action="advance" data-id="${item.id}" aria-label="${nextLabel}">
+            <i data-lucide="${nextIcon}" aria-hidden="true"></i>
           </button>
           <button class="table-action" type="button" data-action="delete" data-id="${item.id}" aria-label="ลบ">
             <i data-lucide="trash-2" aria-hidden="true"></i>
@@ -846,9 +848,7 @@ function editItem(itemId) {
 function advanceStatus(itemId) {
   items = items.map((item) => {
     if (item.id !== itemId) return item;
-    const currentIndex = statuses.findIndex((status) => status.id === item.status);
-    const nextStatus = statuses[Math.min(currentIndex + 1, statuses.length - 1)];
-    return { ...item, status: nextStatus.id };
+    return { ...item, status: item.status === "published" ? "idea" : "published" };
   });
   saveItems();
   render();
