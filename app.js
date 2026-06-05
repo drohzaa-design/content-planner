@@ -3,11 +3,11 @@ const formats = ["Post", "Story", "Reel", "Carousel", "Video", "Article", "Email
 
 const statuses = [
   { id: "idea", label: "ไอเดีย" },
-  { id: "published", label: "เผยแพร่" },
+  { id: "published", label: "พร้อมโพสต์" },
 ];
 
 const thaiWeekdays = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
-const viewIds = ["calendar", "board", "list"];
+const viewIds = ["ideas", "calendar", "list"];
 const legacyItemsKey = "simple-content-planner-items";
 const categoriesStorageKey = "simple-content-planner-categories";
 const activeCategoryStorageKey = "simple-content-planner-active-category";
@@ -20,7 +20,7 @@ let toastTimer;
 let storageError = false;
 
 const state = {
-  view: "calendar",
+  view: "ideas",
   monthDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   search: "",
   channel: "all",
@@ -53,8 +53,8 @@ const elements = {
   monthLabel: document.querySelector("#monthLabel"),
   previousMonth: document.querySelector("#previousMonth"),
   nextMonth: document.querySelector("#nextMonth"),
+  ideasView: document.querySelector("#ideasView"),
   calendarView: document.querySelector("#calendarView"),
-  boardView: document.querySelector("#boardView"),
   listView: document.querySelector("#listView"),
   form: document.querySelector("#contentForm"),
   formTitle: document.querySelector("#formTitle"),
@@ -63,6 +63,7 @@ const elements = {
   focusFormButton: document.querySelector("#focusFormButton"),
   toast: document.querySelector("#toast"),
   titleInput: document.querySelector("#titleInput"),
+  scheduleFields: document.querySelector("#scheduleFields"),
   dateInput: document.querySelector("#dateInput"),
   timeInput: document.querySelector("#timeInput"),
   channelInput: document.querySelector("#channelInput"),
@@ -229,14 +230,17 @@ function loadItems(categoryId = state.activeCategoryId) {
 
 function normalizeItem(item) {
   if (!item || typeof item !== "object") return null;
+  const status = normalizeStatus(item.status);
+  const date = status === "published" ? (isValidISODate(item.date) ? item.date : toISODate(new Date())) : "";
+  const time = status === "published" ? (/^\d{2}:\d{2}$/.test(item.time || "") ? item.time : "09:00") : "";
   return {
     id: String(item.id || createId()),
     title: String(item.title || "รายการไม่มีชื่อ"),
-    date: isValidISODate(item.date) ? item.date : toISODate(new Date()),
-    time: /^\d{2}:\d{2}$/.test(item.time || "") ? item.time : "09:00",
+    date,
+    time,
     channel: channels.includes(item.channel) ? item.channel : channels[0],
     format: formats.includes(item.format) ? item.format : formats[0],
-    status: normalizeStatus(item.status),
+    status,
     urls: normalizeUrls(item.urls ?? item.url ?? ""),
     notes: String(item.notes || ""),
   };
@@ -388,12 +392,13 @@ function filteredItems() {
 
 function render() {
   const visibleItems = filteredItems();
+  const scheduledItems = visibleItems.filter((item) => item.status === "published");
   renderMetrics(visibleItems);
   renderChannels();
   renderViewShell();
-  renderCalendar(visibleItems);
-  renderBoard(visibleItems);
-  renderList(visibleItems);
+  renderIdeas(visibleItems);
+  renderCalendar(scheduledItems);
+  renderList(scheduledItems);
   if (window.lucide) {
     window.lucide.createIcons();
   }
@@ -453,7 +458,7 @@ function selectCategory(categoryId) {
   if (!category) return;
 
   state.activeCategoryId = category.id;
-  state.view = "calendar";
+  state.view = "ideas";
   state.search = "";
   state.channel = "all";
   state.status = "all";
@@ -494,8 +499,8 @@ function renderChannels() {
 
 function renderViewShell() {
   const isCalendar = state.view === "calendar";
+  elements.ideasView.hidden = state.view !== "ideas";
   elements.calendarView.hidden = !isCalendar;
-  elements.boardView.hidden = state.view !== "board";
   elements.listView.hidden = state.view !== "list";
   elements.monthSwitcher.hidden = !isCalendar;
 
@@ -506,9 +511,9 @@ function renderViewShell() {
   });
 
   const titles = {
-    calendar: ["ปฏิทินคอนเทนต์", "Monthly view", "ปฏิทินเผยแพร่"],
-    board: ["บอร์ดคอนเทนต์", "Workflow view", "สถานะงานคอนเทนต์"],
-    list: ["รายการคอนเทนต์", "Table view", "แผนทั้งหมด"],
+    ideas: ["คลังไอเดีย", "Idea backlog", "รายการไอเดียที่ยังไม่ได้ลงตาราง"],
+    calendar: ["ตารางโพสต์", "Schedule view", "ปฏิทินโพสต์"],
+    list: ["รายการโพสต์", "Ready content", "คอนเทนต์ที่พร้อมโพสต์"],
   };
   const [pageTitle, eyebrow, panelTitle] = titles[state.view];
   elements.pageTitle.textContent = pageTitle;
@@ -521,6 +526,41 @@ function switchView(view) {
   state.view = view;
   render();
   return false;
+}
+
+function renderIdeas(visibleItems) {
+  const ideaItems = visibleItems.filter((item) => item.status === "idea");
+  if (!ideaItems.length) {
+    elements.ideasView.innerHTML = `<div class="empty-state">ยังไม่มีไอเดียค้างอยู่</div>`;
+    return;
+  }
+
+  elements.ideasView.innerHTML = `
+    <div class="idea-list">
+      ${ideaItems.map((item) => renderIdeaCard(item)).join("")}
+    </div>
+  `;
+}
+
+function renderIdeaCard(item) {
+  return `
+    <article class="content-card idea-card" data-id="${item.id}">
+      <div class="idea-card-main">
+        <div class="idea-card-top">
+          <span class="status-badge status-${item.status}">${statusLabel(item.status)}</span>
+          <span class="idea-meta">${escapeHTML(item.format)} • ${escapeHTML(item.channel)}</span>
+        </div>
+        <h4>${escapeHTML(item.title)}</h4>
+        ${item.notes ? `<p class="idea-notes">${escapeHTML(item.notes)}</p>` : ""}
+        ${renderContentLinks(item.urls)}
+      </div>
+      <div class="idea-actions">
+        <button class="status-button" type="button" data-action="edit" data-id="${item.id}">แก้ไข</button>
+        <button class="status-button primary-status" type="button" data-action="schedule" data-id="${item.id}">ลงตาราง</button>
+        <button class="status-button danger-status" type="button" data-action="delete" data-id="${item.id}">ลบ</button>
+      </div>
+    </article>
+  `;
 }
 
 function renderCalendar(visibleItems) {
@@ -583,47 +623,9 @@ function renderSmallCard(item) {
   `;
 }
 
-function renderBoard(visibleItems) {
-  elements.boardView.innerHTML = statuses
-    .map((status) => {
-      const statusItems = visibleItems.filter((item) => item.status === status.id);
-      const body = statusItems.length ? statusItems.map((item) => renderBoardCard(item)).join("") : `<div class="empty-column">ว่าง</div>`;
-      return `
-        <section class="board-column">
-          <header class="column-head">
-            <span>${status.label}</span>
-            <span class="column-count">${statusItems.length}</span>
-          </header>
-          <div class="column-body">${body}</div>
-        </section>
-      `;
-    })
-    .join("");
-}
-
-function renderBoardCard(item) {
-  const nextLabel = item.status === "published" ? "กลับเป็นไอเดีย" : "เผยแพร่";
-  return `
-    <article class="content-card board-card" data-id="${item.id}">
-      <span class="status-badge status-${item.status}">${statusLabel(item.status)}</span>
-      <div class="card-title">${escapeHTML(item.title)}</div>
-      <div class="card-meta">
-        <span><i data-lucide="calendar" aria-hidden="true"></i>${formatThaiDate(item.date)}</span>
-        <span><i data-lucide="clock" aria-hidden="true"></i>${item.time}</span>
-        <span>${escapeHTML(item.channel)}</span>
-        ${renderContentLinks(item.urls)}
-      </div>
-      <div class="status-actions">
-        <button class="status-button" type="button" data-action="edit" data-id="${item.id}">แก้ไข</button>
-        <button class="status-button" type="button" data-action="advance" data-id="${item.id}">${nextLabel}</button>
-      </div>
-    </article>
-  `;
-}
-
 function renderList(visibleItems) {
   if (!visibleItems.length) {
-    elements.listView.innerHTML = `<div class="empty-state">ไม่พบรายการที่ตรงกับตัวกรอง</div>`;
+    elements.listView.innerHTML = `<div class="empty-state">ยังไม่มีคอนเทนต์ที่ลงตารางโพสต์</div>`;
     return;
   }
 
@@ -632,7 +634,7 @@ function renderList(visibleItems) {
       <thead>
         <tr>
           <th>คอนเทนต์</th>
-          <th>กำหนดเผยแพร่</th>
+          <th>วันโพสต์</th>
           <th>ช่องทาง</th>
           <th>สถานะ</th>
           <th>จัดการ</th>
@@ -646,7 +648,7 @@ function renderList(visibleItems) {
 }
 
 function renderTableRow(item) {
-  const nextLabel = item.status === "published" ? "กลับเป็นไอเดีย" : "เผยแพร่";
+  const nextLabel = item.status === "published" ? "กลับเป็นไอเดีย" : "พร้อมโพสต์";
   const nextIcon = item.status === "published" ? "undo-2" : "check";
   return `
     <tr>
@@ -754,15 +756,18 @@ function handleSubmit(event) {
   if (!validateForm()) return;
 
   const formData = new FormData(elements.form);
+  const status = normalizeStatus(formData.get("status"));
   const urls = normalizeUrls(formData.get("url"));
+  const date = status === "published" ? formData.get("date") : isValidISODate(formData.get("date")) ? formData.get("date") : "";
+  const time = status === "published" ? formData.get("time") : /^\d{2}:\d{2}$/.test(formData.get("time") || "") ? formData.get("time") : "";
   const item = {
     id: state.editingId ?? createId(),
     title: formData.get("title").trim(),
-    date: formData.get("date"),
-    time: formData.get("time"),
+    date,
+    time,
     channel: formData.get("channel"),
     format: formData.get("format"),
-    status: formData.get("status"),
+    status,
     urls,
     notes: formData.get("notes").trim(),
   };
@@ -773,11 +778,17 @@ function handleSubmit(event) {
     items = [...items, item];
   }
 
-  state.monthDate = new Date(parseISODate(item.date).getFullYear(), parseISODate(item.date).getMonth(), 1);
+  if (item.status === "published") {
+    state.monthDate = new Date(parseISODate(item.date).getFullYear(), parseISODate(item.date).getMonth(), 1);
+    state.view = "calendar";
+  } else {
+    state.view = "ideas";
+  }
+
   const persisted = saveItems();
   resetForm();
   render();
-  showToast(persisted ? "บันทึกแผนแล้ว" : "เพิ่มรายการแล้ว แต่เบราว์เซอร์ไม่อนุญาตให้บันทึกถาวร", persisted ? "success" : "warning");
+  showToast(persisted ? "บันทึกแล้ว" : "เพิ่มรายการแล้ว แต่เบราว์เซอร์ไม่อนุญาตให้บันทึกถาวร", persisted ? "success" : "warning");
 }
 
 function validateForm() {
@@ -789,7 +800,12 @@ function validateForm() {
     return false;
   }
 
-  const requiredControls = [elements.dateInput, elements.timeInput, elements.channelInput, elements.formatInput, elements.statusInput];
+  const status = normalizeStatus(elements.statusInput.value);
+  const requiredControls = [elements.channelInput, elements.formatInput, elements.statusInput];
+  if (status === "published") {
+    requiredControls.unshift(elements.dateInput, elements.timeInput);
+  }
+
   const missingControl = requiredControls.find((control) => !control.value);
   if (missingControl) {
     missingControl.setAttribute("aria-invalid", "true");
@@ -799,7 +815,9 @@ function validateForm() {
   }
 
   elements.titleInput.removeAttribute("aria-invalid");
-  requiredControls.forEach((control) => control.removeAttribute("aria-invalid"));
+  [elements.dateInput, elements.timeInput, elements.channelInput, elements.formatInput, elements.statusInput].forEach((control) => {
+    control.removeAttribute("aria-invalid");
+  });
 
   if (hasInvalidUrls(elements.urlInput.value)) {
     elements.urlInput.setAttribute("aria-invalid", "true");
@@ -815,14 +833,13 @@ function validateForm() {
 function resetForm() {
   state.editingId = null;
   elements.form.reset();
-  elements.dateInput.value = toISODate(new Date());
-  elements.timeInput.value = "09:00";
+  elements.dateInput.value = "";
+  elements.timeInput.value = "";
   elements.channelInput.value = "Instagram";
   elements.statusInput.value = "idea";
   elements.urlInput.value = "";
   renderUrlPreview();
-  elements.formTitle.textContent = "เพิ่มรายการใหม่";
-  elements.submitButton.textContent = "บันทึกแผน";
+  updateScheduleFields();
 }
 
 function editItem(itemId) {
@@ -839,19 +856,87 @@ function editItem(itemId) {
   elements.urlInput.value = normalizeUrls(item.urls ?? item.url ?? "").join("\n");
   renderUrlPreview();
   elements.notesInput.value = item.notes ?? "";
-  elements.formTitle.textContent = "แก้ไขรายการ";
-  elements.submitButton.textContent = "อัปเดตแผน";
+  updateScheduleFields();
   elements.titleInput.focus({ preventScroll: true });
   document.querySelector(".form-panel").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function scheduleItem(itemId) {
+  const item = items.find((current) => current.id === itemId);
+  if (!item) return;
+
+  editItem(itemId);
+  elements.statusInput.value = "published";
+  elements.dateInput.value = isValidISODate(item.date) ? item.date : toISODate(new Date());
+  elements.timeInput.value = /^\d{2}:\d{2}$/.test(item.time || "") ? item.time : "09:00";
+  updateScheduleFields();
+  elements.formTitle.textContent = "ลงตารางโพสต์";
+  elements.submitButton.textContent = "บันทึกลงตาราง";
+  elements.dateInput.focus({ preventScroll: true });
+}
+
+function updateScheduleFields() {
+  const needsSchedule = normalizeStatus(elements.statusInput.value) === "published";
+  elements.scheduleFields.hidden = !needsSchedule;
+  elements.dateInput.required = needsSchedule;
+  elements.timeInput.required = needsSchedule;
+
+  if (needsSchedule) {
+    elements.dateInput.value ||= toISODate(new Date());
+    elements.timeInput.value ||= "09:00";
+  }
+
+  syncFormLabels();
+}
+
+function syncFormLabels() {
+  const needsSchedule = normalizeStatus(elements.statusInput.value) === "published";
+  const isEditing = Boolean(state.editingId);
+
+  if (isEditing) {
+    elements.formTitle.textContent = needsSchedule ? "แก้ไขรายการโพสต์" : "แก้ไขไอเดีย";
+    elements.submitButton.textContent = needsSchedule ? "อัปเดตรายการโพสต์" : "อัปเดตไอเดีย";
+    return;
+  }
+
+  elements.formTitle.textContent = needsSchedule ? "เพิ่มรายการโพสต์ใหม่" : "เพิ่มไอเดียใหม่";
+  elements.submitButton.textContent = needsSchedule ? "บันทึกลงตาราง" : "บันทึกไอเดีย";
+}
+
 function advanceStatus(itemId) {
+  let updatedStatus = null;
+  let updatedDate = null;
   items = items.map((item) => {
     if (item.id !== itemId) return item;
-    return { ...item, status: item.status === "published" ? "idea" : "published" };
+    if (item.status === "published") {
+      updatedStatus = "idea";
+      return { ...item, status: "idea" };
+    }
+
+    updatedStatus = "published";
+    updatedDate = isValidISODate(item.date) ? item.date : toISODate(new Date());
+    return {
+      ...item,
+      status: "published",
+      date: updatedDate,
+      time: /^\d{2}:\d{2}$/.test(item.time || "") ? item.time : "09:00",
+    };
   });
+
+  if (updatedStatus === "published" && updatedDate) {
+    state.monthDate = new Date(parseISODate(updatedDate).getFullYear(), parseISODate(updatedDate).getMonth(), 1);
+    state.view = "calendar";
+  }
+
+  if (updatedStatus === "idea") {
+    state.view = "ideas";
+  }
+
   saveItems();
   render();
+  if (updatedStatus) {
+    showToast(updatedStatus === "idea" ? "ย้ายกลับไปคลังไอเดียแล้ว" : "ย้ายเข้าตารางโพสต์แล้ว");
+  }
 }
 
 function deleteItem(itemId) {
@@ -943,6 +1028,7 @@ function handleAction(event) {
   if (actionButton) {
     const { action, id } = actionButton.dataset;
     if (action === "edit") editItem(id);
+    if (action === "schedule") scheduleItem(id);
     if (action === "advance") advanceStatus(id);
     if (action === "delete") deleteItem(id);
     return;
@@ -1027,14 +1113,20 @@ function attachEvents() {
     elements.urlInput.removeAttribute("aria-invalid");
     renderUrlPreview();
   });
+  elements.statusInput.addEventListener("change", () => {
+    [elements.dateInput, elements.timeInput, elements.statusInput].forEach((control) => {
+      control.removeAttribute("aria-invalid");
+    });
+    updateScheduleFields();
+  });
   elements.resetFormButton.addEventListener("click", resetForm);
   elements.focusFormButton.addEventListener("click", () => {
     document.querySelector(".form-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     elements.titleInput.focus({ preventScroll: true });
   });
 
+  elements.ideasView.addEventListener("click", handleAction);
   elements.calendarView.addEventListener("click", handleAction);
-  elements.boardView.addEventListener("click", handleAction);
   elements.listView.addEventListener("click", handleAction);
 }
 
