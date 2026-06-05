@@ -1,9 +1,0 @@
-.top-actions {
-  grid-template-columns: auto auto auto;
-}
-
-@media (max-width: 860px) {
-  .top-actions {
-    grid-template-columns: 1fr;
-  }
-}
