@@ -7,8 +7,8 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>Content Planner</title>
-    <link rel="stylesheet" href="styles.css?v=simple-status-20260605" />
-    <script src="app.js?v=simple-status-20260605" defer></script>
+    <link rel="stylesheet" href="styles.css?v=idea-backlog-20260605" />
+    <script src="app.js?v=idea-backlog-20260605" defer></script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer onload="window.lucide && window.lucide.createIcons()"></script>
   </head>
   <body>
@@ -87,17 +87,17 @@
         </button>
 
         <nav class="nav-list" aria-label="มุมมอง">
-          <button class="nav-item is-active" type="button" data-view="calendar" aria-pressed="true" onclick="return switchView('calendar')">
-            <i data-lucide="calendar-days" aria-hidden="true"></i>
-            <span>ปฏิทิน</span>
+          <button class="nav-item is-active" type="button" data-view="ideas" aria-pressed="true" onclick="return switchView('ideas')">
+            <i data-lucide="lightbulb" aria-hidden="true"></i>
+            <span>ไอเดีย</span>
           </button>
-          <button class="nav-item" type="button" data-view="board" aria-pressed="false" onclick="return switchView('board')">
-            <i data-lucide="kanban" aria-hidden="true"></i>
-            <span>บอร์ด</span>
+          <button class="nav-item" type="button" data-view="calendar" aria-pressed="false" onclick="return switchView('calendar')">
+            <i data-lucide="calendar-days" aria-hidden="true"></i>
+            <span>ตารางโพสต์</span>
           </button>
           <button class="nav-item" type="button" data-view="list" aria-pressed="false" onclick="return switchView('list')">
             <i data-lucide="list-checks" aria-hidden="true"></i>
-            <span>รายการ</span>
+            <span>รายการโพสต์</span>
           </button>
         </nav>
 
@@ -111,7 +111,7 @@
         <header class="topbar">
           <div>
             <p class="eyebrow" id="activeCategoryEyebrow">แผนเดือนนี้</p>
-            <h2 id="pageTitle">ปฏิทินคอนเทนต์</h2>
+            <h2 id="pageTitle">คลังไอเดีย</h2>
           </div>
           <div class="top-actions">
             <button class="secondary-action" type="button" id="topChangeCategoryButton">
@@ -120,7 +120,7 @@
             </button>
             <button class="primary-action" type="button" id="focusFormButton">
               <i data-lucide="plus" aria-hidden="true"></i>
-              <span>เพิ่มคอนเทนต์</span>
+              <span>เพิ่มไอเดีย</span>
             </button>
           </div>
         </header>
@@ -135,7 +135,7 @@
             <strong id="ideaMetric">0</strong>
           </article>
           <article class="metric accent">
-            <span class="metric-label">เผยแพร่</span>
+            <span class="metric-label">พร้อมโพสต์</span>
             <strong id="publishedMetric">0</strong>
           </article>
         </section>
@@ -165,8 +165,8 @@
           <section class="planner-panel" aria-live="polite">
             <div class="panel-head">
               <div>
-                <p class="eyebrow" id="panelEyebrow">Monthly view</p>
-                <h3 id="panelTitle">ปฏิทินเผยแพร่</h3>
+                <p class="eyebrow" id="panelEyebrow">Idea backlog</p>
+                <h3 id="panelTitle">รายการไอเดียที่ยังไม่ได้ลงตาราง</h3>
               </div>
               <div class="month-switcher" id="monthSwitcher">
                 <button class="icon-button" type="button" id="previousMonth" aria-label="เดือนก่อนหน้า">
@@ -179,8 +179,8 @@
               </div>
             </div>
 
-            <div id="calendarView" class="calendar-view"></div>
-            <div id="boardView" class="board-view" hidden></div>
+            <div id="ideasView" class="ideas-view"></div>
+            <div id="calendarView" class="calendar-view" hidden></div>
             <div id="listView" class="list-view" hidden></div>
           </section>
 
@@ -188,7 +188,7 @@
             <div class="panel-head compact">
               <div>
                 <p class="eyebrow">Content brief</p>
-                <h3 id="formTitle">เพิ่มรายการใหม่</h3>
+                <h3 id="formTitle">เพิ่มไอเดียใหม่</h3>
               </div>
               <button class="icon-button subtle" type="button" id="resetFormButton" aria-label="ล้างฟอร์ม">
                 <i data-lucide="rotate-ccw" aria-hidden="true"></i>
@@ -208,14 +208,14 @@
               </label>
               <div class="url-preview" id="urlPreview" aria-live="polite"></div>
 
-              <div class="field-pair">
+              <div class="field-pair schedule-fields" id="scheduleFields" hidden>
                 <label>
                   วันที่
-                  <input id="dateInput" name="date" type="date" required />
+                  <input id="dateInput" name="date" type="date" />
                 </label>
                 <label>
                   เวลา
-                  <input id="timeInput" name="time" type="time" required />
+                  <input id="timeInput" name="time" type="time" />
                 </label>
               </div>
 
@@ -250,7 +250,7 @@
 
               <button class="primary-action full" type="submit" id="submitButton">
                 <i data-lucide="save" aria-hidden="true"></i>
-                <span>บันทึกแผน</span>
+                <span>บันทึกไอเดีย</span>
               </button>
             </form>
           </aside>
