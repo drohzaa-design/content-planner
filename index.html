@@ -491,6 +491,12 @@
             showToast("ออกจากระบบแล้ว");
           });
 
+          document.querySelector("#focusFormButton")?.addEventListener("click", () => {
+            document.querySelector("#resetFormButton")?.click();
+            document.querySelector(".form-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            document.querySelector("#titleInput")?.focus({ preventScroll: true });
+          });
+
           if (isAuthenticated()) {
             showCategory();
           } else {
